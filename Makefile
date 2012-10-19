@@ -11,19 +11,19 @@ TESTEXE=$(TEST_OUTPUT_DIR)/rest_client_test
 
 UNAME := $(shell uname)
 
-VERSION = 1
+VERSION = 1.0
 LIBNAME = librest.a
 SONAME = $(OUTPUT_DIR)/librest.so
 LIBDIR = -L/usr/local/lib
 LIBS= -lssl -lcrypto -lcurl
 CFLAGS = -Iinclude -Wall -fPIC -g -c -D_FILE_OFFSET_BITS=64 -pthreads
-SOFLAGS = -shared -Wl,-soname,$(LIBNAME) -o $(LIBNAME)
+SOFLAGS = -shared -Wl,-soname,$(SONAME) -o $(SONAME)
 
 TESTLINK = -L$(OUTPUT_DIR) -lrest
 
 ifeq ($(UNAME), Darwin)
 	SONAME = $(OUTPUT_DIR)/librest.dylib
-	SOFLAGS = -dynamiclib -undefined suppress -flat_namespace -o $(LIBNAME)
+	SOFLAGS = -dynamiclib -undefined suppress -flat_namespace -o $(SONAME)
 endif 
 
 all: prepare lib testharness
@@ -51,10 +51,17 @@ test: testharness
 doc: 
 	doxygen Doxyfile
 
+tar:
+	mkdir -p tar
+	mkdir -p tar/rest-client-c
+	cp -r src test Makefile Doxyfile include tar/rest-client-c
+	find tar -name .svn | xargs rm -rf
+	cd tar; tar cvzf ../rest-client-c_$(VERSION).tar.gz rest-client-c
+	rm -rf tar
+
 clean:
 	rm -f *.o
 	rm -f *.so
 	rm -f *.dylib
-	rm -rf html
 	rm -rf $(OUTPUT_DIR)
 	rm -rf $(TEST_OUTPUT_DIR)
