@@ -655,3 +655,48 @@ void RestRequest_add_header(RestRequest *self, const char *header) {
 	self->headers[self->header_count++] = strdup(header);
 }
 
+const char *RestRequest_get_header(RestRequest *self, const char *header_name) {
+    int i;
+    char *header;
+
+    for(i=0; i<self->header_count; i++) {
+        if((header = strcasestr(self->headers[i], header_name)) != NULL &&
+                header == self->headers[i]) {
+            // Just to make sure, the next character should be a colon.
+            if(header[strlen(header_name)] != ':') {
+                continue;
+            }
+
+            return self->headers[i];
+        }
+    }
+    return NULL;
+}
+
+const char *RestRequest_get_header_value(RestRequest *self,
+        const char *header_name) {
+    const char *header = RestRequest_get_header(self, header_name);
+
+    if(!header) {
+        return NULL;
+    }
+
+    // Find the colon
+    header = strstr(header, ":");
+
+    if(!header) {
+        return NULL;
+    }
+
+    // Skip the colon
+    header++;
+
+    // Trim any leading whitespace.
+    while(*header == ' ') {
+        header++;
+    }
+
+    return header;
+}
+
+

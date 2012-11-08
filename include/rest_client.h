@@ -59,6 +59,12 @@
  */
 #define ERROR_MESSAGE_SIZE 255
 
+// Some standard HTTP headers
+#define HTTP_HEADER_CONTENT_TYPE "Content-Type"
+#define HTTP_HEADER_CONTENT_LENGTH "Content-Length"
+#define HTTP_HEADER_RANGE "Range"
+#define HTTP_HEADER_ACCEPT "Accept"
+#define HTTP_HEADER_DATE "Date"
 
 /**
  * Allowed methods for REST operations.
@@ -274,6 +280,29 @@ void RestRequest_set_file_body(RestRequest *self, FILE *data, off_t data_size,
  * "name: value", e.g. "Accept: application/json"
  */
 void RestRequest_add_header(RestRequest *self, const char *header);
+
+/**
+ * Gets an existing HTTP header from the request.  If the request does not
+ * contain the header in question, NULL is returned.  Note that if the request
+ * contains the same header more than once, only the first instance will be
+ * returned.
+ * @param self the RestRequest to search of the header.
+ * @param header_name the name (case-insensitive) of the header to retrieve.
+ * @return the header, generally in the format of "name: value".  Do not modify
+ * this value.
+ */
+const char *RestRequest_get_header(RestRequest *self, const char *header_name);
+
+/**
+ * Similar to RestRequest_get_header, but returns only the value portion of
+ * the header (everything past the first colon).
+ * @param self the RestRequest to search of the header.
+ * @param header_name the name (case-insensitive) of the header to retrieve.
+ * @return the header, generally in the format of "name: value".  Do not modify
+ * this value.
+ */
+const char *RestRequest_get_header_value(RestRequest *self,
+        const char *header_name);
 
 #pragma mark RestClient
 
