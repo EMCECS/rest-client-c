@@ -55,6 +55,8 @@ void unlock_function(CURL *handle, curl_lock_data data, void *userptr) {
 #endif
 }
 
+static const char *get_header_value(const char *header);
+
 RestClient *RestClient_init(RestClient *self, const char *host, int port) {
 	// Super init
 	Object_init_with_class_name((Object*)self, CLASS_REST_CLIENT);
@@ -343,7 +345,8 @@ void RestFilter_set_content_headers(RestFilter *self, RestClient *rest,
 		RestRequest_add_header(request, headerbuf);
 		snprintf(headerbuf, MAX_HEADER_SIZE, "%s: %s", HEADER_CONTENT_TYPE,
 				request->request_body->content_type);
-	} else if(request->method == POST || request->method == PUT) {
+        RestRequest_add_header(request, headerbuf);
+	} else if(request->method == HTTP_POST || request->method == HTTP_PUT) {
 		// Zero-length body
 		RestRequest_add_header(request, HEADER_CONTENT_LENGTH ":0");
 	}
@@ -383,7 +386,6 @@ void RestFilter_execute_curl_request(RestFilter *self, RestClient *rest,
     char *endpoint_url;
     size_t endpoint_size;
     size_t i,j;
-    off_t start_offset;
 
     RestPrivate *priv = rest->internal;
 
@@ -430,25 +432,25 @@ void RestFilter_execute_curl_request(RestFilter *self, RestClient *rest,
 
 	switch(request->method) {
 
-	case POST:
+	case HTTP_POST:
 	    curl_easy_setopt(curl, CURLOPT_POST, 1l);
 	    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t)0L);
 	    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, NULL);
 
 	    break;
-	case PUT:
-	    curl_easy_setopt(curl, CURLOPT_PUT, 1L);
+	case HTTP_PUT:
+	    curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
 	    break;
-	case DELETE:
+	case HTTP_DELETE:
 	    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
 	    break;
-	case HEAD:
+	case HTTP_HEAD:
 	  curl_easy_setopt(curl, CURLOPT_NOBODY, 1l);
 	    break;
-	case GET:
+	case HTTP_GET:
 
 	  break;
-	case OPTIONS:
+	case HTTP_OPTIONS:
 	  break;
 	}
 
@@ -458,11 +460,17 @@ void RestFilter_execute_curl_request(RestFilter *self, RestClient *rest,
 //	    snprintf(range, HEADER_MAX, "Bytes=%jd-%jd", (intmax_t)data->offset,
 //	    		(intmax_t)(data->offset+data->body_size-1));
 //	  }
-	  curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE,
-			  (curl_off_t)request->request_body->data_size);
+
+	    if(request->method == HTTP_PUT) {
+	        curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE,
+	                (curl_off_t)request->request_body->data_size);
+	    } else {
+	        curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE,
+	                (curl_off_t)request->request_body->data_size);
+	    }
 
 	  /* If a stream handle is used, let libcurl handle the file I/O */
-	  if(request->request_body->file_body && (request->method == POST || request->method == PUT)) {
+	  if(request->request_body->file_body && (request->method == HTTP_POST || request->method == HTTP_PUT)) {
 		  curl_easy_setopt(curl, CURLOPT_READDATA, request->request_body->file_body);
 		  curl_easy_setopt(curl, CURLOPT_READFUNCTION, NULL);
 
@@ -486,7 +494,7 @@ void RestFilter_execute_curl_request(RestFilter *self, RestClient *rest,
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
         
         // Get the current offset so we know how many bytes were written
-        start_offset = ftello(response->file_body);
+        response->file_body_start_pos = ftello(response->file_body);
 	}
 
 
@@ -538,7 +546,7 @@ void RestFilter_execute_curl_request(RestFilter *self, RestClient *rest,
     if(response->file_body) {
         // Do this by getting the current ptr.
         off_t current_offset = ftello(response->file_body);
-        response->content_length = current_offset - start_offset;
+        response->content_length = current_offset - response->file_body_start_pos;
     }
 
 
@@ -596,7 +604,7 @@ void RestResponse_use_file(RestResponse *self, FILE *f) {
 RestRequest *RestRequest_init(RestRequest *self, const char *uri, enum http_method method) {
 	Object_init_with_class_name((Object*)self, CLASS_REST_REQUEST);
 
-	self->uri = uri;
+	self->uri = strdup(uri);
 	self->method = method;
 
 	// Init other fields, clear headers.
@@ -625,6 +633,7 @@ void RestRequest_destroy(RestRequest *self) {
 	}
 
 	self->header_count = 0;
+	free(self->uri);
 	self->uri = NULL;
 	self->method = 0;
 
@@ -673,14 +682,7 @@ const char *RestRequest_get_header(RestRequest *self, const char *header_name) {
     return NULL;
 }
 
-const char *RestRequest_get_header_value(RestRequest *self,
-        const char *header_name) {
-    const char *header = RestRequest_get_header(self, header_name);
-
-    if(!header) {
-        return NULL;
-    }
-
+static const char *get_header_value(const char *header) {
     // Find the colon
     header = strstr(header, ":");
 
@@ -699,4 +701,43 @@ const char *RestRequest_get_header_value(RestRequest *self,
     return header;
 }
 
+const char *RestRequest_get_header_value(RestRequest *self,
+        const char *header_name) {
+    const char *header = RestRequest_get_header(self, header_name);
+
+    if(!header) {
+        return NULL;
+    }
+
+    return get_header_value(header);
+}
+
+const char *RestResponse_get_header(RestResponse *self, const char *header_name) {
+    int i;
+    char *header;
+
+    for(i=0; i<self->response_header_count; i++) {
+        if((header = strcasestr(self->response_headers[i], header_name)) != NULL &&
+                header == self->response_headers[i]) {
+            // Just to make sure, the next character should be a colon.
+            if(header[strlen(header_name)] != ':') {
+                continue;
+            }
+
+            return self->response_headers[i];
+        }
+    }
+    return NULL;
+}
+
+const char *RestResponse_get_header_value(RestResponse *self,
+        const char *header_name) {
+    const char *header = RestResponse_get_header(self, header_name);
+
+    if(!header) {
+        return NULL;
+    }
+
+    return get_header_value(header);
+}
 

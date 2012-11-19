@@ -65,17 +65,18 @@
 #define HTTP_HEADER_RANGE "Range"
 #define HTTP_HEADER_ACCEPT "Accept"
 #define HTTP_HEADER_DATE "Date"
+#define HTTP_HEADER_LOCATION "Location"
 
 /**
  * Allowed methods for REST operations.
  */
 enum http_method {
-	POST,
-	GET,
-	PUT,
-	DELETE,
-	HEAD,
-	OPTIONS
+	HTTP_POST,
+	HTTP_GET,
+	HTTP_PUT,
+	HTTP_DELETE,
+	HTTP_HEAD,
+	HTTP_OPTIONS
 };
 
 /** Class name for RestResponse */
@@ -151,6 +152,11 @@ typedef struct {
      * instead of memory.
      */
 	FILE *file_body;
+	/**
+	 * When using file_body, we keep track of the offset just before the HTTP
+	 * operation in case we need to rewind.
+	 */
+	off_t file_body_start_pos;
 } RestResponse;
 
 /**
@@ -170,6 +176,31 @@ void RestResponse_destroy(RestResponse *self);
  * @param header the HTTP response header to add to the object.
  */
 void RestResponse_add_header(RestResponse *self, const char *header);
+
+/**
+ * Gets an existing HTTP header from the response.  If the response does not
+ * contain the header in question, NULL is returned.  Note that if the response
+ * contains the same header more than once, only the first instance will be
+ * returned.
+ * @param self the RestResponse to search of the header.
+ * @param header_name the name (case-insensitive) of the header to retrieve.
+ * @return the header, generally in the format of "name: value".  Do not modify
+ * this value.
+ */
+const char *RestResponse_get_header(RestResponse *self, const char *header_name);
+
+/**
+ * Similar to RestResponse_get_header, but returns only the value portion of
+ * the header (everything past the first colon).
+ * @param self the RestResponse to search of the header.
+ * @param header_name the name (case-insensitive) of the header to retrieve.
+ * @return the header, generally in the format of "name: value".  Do not modify
+ * this value.
+ */
+const char *RestResponse_get_header_value(RestResponse *self,
+        const char *header_name);
+
+
 /**
  * This function can be used to preconfigure a static response buffer to
  * capture the response.  This can be used to improve memory efficiency
@@ -227,7 +258,7 @@ typedef struct {
 	/** The HTTP operation for the request (e.g. GET or PUT) */
 	enum http_method method;
 	/** The URI for the request (e.g. /service/version) */
-	const char *uri;
+	char *uri;
 	/** HTTP request headers, (e.g. x-emc-date) */
 	char *headers[MAX_HEADERS];
 	/** Number of request headers */

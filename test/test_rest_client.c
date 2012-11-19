@@ -70,7 +70,7 @@ void test_rest_client_execute() {
     
     
 	RestClient_init(&c, "www.google.com", 80);
-	RestRequest_init(&req, "/", GET);
+	RestRequest_init(&req, "/", HTTP_GET);
 	RestResponse_init(&res);
     
 	chain = RestFilter_add(chain, &RestFilter_execute_curl_request);
@@ -96,7 +96,7 @@ void test_rest_client_execute_with_buffer() {
     
     
 	RestClient_init(&c, "www.google.com", 80);
-	RestRequest_init(&req, "/", GET);
+	RestRequest_init(&req, "/", HTTP_GET);
 	RestResponse_init(&res);
     
     // Init the buffer.
@@ -128,7 +128,7 @@ void test_rest_client_execute_with_too_small_buffer() {
     
     
 	RestClient_init(&c, "www.google.com", 80);
-	RestRequest_init(&req, "/", GET);
+	RestRequest_init(&req, "/", HTTP_GET);
 	RestResponse_init(&res);
     
     // Init the buffer.
@@ -155,7 +155,7 @@ void test_rest_client_execute_with_too_small_buffer() {
 void test_rest_request() {
 	RestRequest req;
 
-	RestRequest_init(&req, "/", GET);
+	RestRequest_init(&req, "/", HTTP_GET);
 	assert_string_equal(CLASS_REST_REQUEST, Object_get_class_name((Object*)&req));
 
 	RestRequest_add_header(&req, TEST_HEADER);
