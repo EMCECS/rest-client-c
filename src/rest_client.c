@@ -34,9 +34,6 @@
 
 #include "rest_client.h"
 
-#define HEADER_CONTENT_LENGTH "Content-Length"
-#define HEADER_CONTENT_TYPE "Content-Type"
-
 #define CONNECT_TIMEOUT 200
 #define MAX_HEADER_SIZE 1024
 
@@ -340,15 +337,16 @@ void RestFilter_set_content_headers(RestFilter *self, RestClient *rest,
 	char headerbuf[MAX_HEADER_SIZE];
 
 	if(request->request_body) {
-		snprintf(headerbuf, MAX_HEADER_SIZE, "%s: %lld", HEADER_CONTENT_LENGTH,
+		snprintf(headerbuf, MAX_HEADER_SIZE, "%s: %lld",
+		        HTTP_HEADER_CONTENT_LENGTH,
 				(long long)request->request_body->data_size);
 		RestRequest_add_header(request, headerbuf);
-		snprintf(headerbuf, MAX_HEADER_SIZE, "%s: %s", HEADER_CONTENT_TYPE,
+		snprintf(headerbuf, MAX_HEADER_SIZE, "%s: %s", HTTP_HEADER_CONTENT_TYPE,
 				request->request_body->content_type);
         RestRequest_add_header(request, headerbuf);
 	} else if(request->method == HTTP_POST || request->method == HTTP_PUT) {
 		// Zero-length body
-		RestRequest_add_header(request, HEADER_CONTENT_LENGTH ":0");
+		RestRequest_add_header(request, HTTP_HEADER_CONTENT_LENGTH ":0");
 	}
 
 	// Pass to the next filter
@@ -361,8 +359,8 @@ void RestFilter_set_content_headers(RestFilter *self, RestClient *rest,
 	int i;
 	for(i=0; i<count; i++) {
 		char *header = response->response_headers[i];
-		if(header && strstr(header, HEADER_CONTENT_TYPE) == header) {
-			char *content_type = header + strlen(HEADER_CONTENT_TYPE);
+		if(header && strstr(header, HTTP_HEADER_CONTENT_TYPE) == header) {
+			char *content_type = header + strlen(HTTP_HEADER_CONTENT_TYPE);
 			content_type++; // skip ":"
 
 			// Might be leading spaces
@@ -642,7 +640,7 @@ void RestRequest_destroy(RestRequest *self) {
 }
 
 void RestRequest_set_array_body(RestRequest *self, const char *data,
-		off_t data_size, const char *content_type) {
+        int64_t data_size, const char *content_type) {
 	self->request_body = calloc(sizeof(RestRequestBody), 1);
 
 	self->request_body->body = data;
@@ -650,7 +648,7 @@ void RestRequest_set_array_body(RestRequest *self, const char *data,
 	self->request_body->content_type = content_type;
 }
 
-void RestRequest_set_file_body(RestRequest *self, FILE *data, off_t data_size,
+void RestRequest_set_file_body(RestRequest *self, FILE *data, int64_t data_size,
 		const char *content_type) {
 	self->request_body = calloc(sizeof(RestRequestBody), 1);
 
@@ -740,4 +738,10 @@ const char *RestResponse_get_header_value(RestResponse *self,
 
     return get_header_value(header);
 }
+
+void
+RestResponse_add_header(RestResponse *self, const char *header) {
+    self->response_headers[self->response_header_count++] = strdup(header);
+}
+
 

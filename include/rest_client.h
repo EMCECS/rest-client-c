@@ -129,7 +129,7 @@ typedef struct {
 	 * actual number of bytes present in the body member.  When writing to a
 	 * file, this will be the number of bytes written to the file.
 	 */
-	off_t content_length;
+	int64_t content_length;
 	/**
 	 * The buffer containing the response body.
 	 */
@@ -231,11 +231,11 @@ typedef struct {
 	/** Type of content, e.g. "text/plain" or "image/jpeg" */
 	const char *content_type;
 	/** Number of bytes to write */
-	off_t data_size;
+	int64_t data_size;
 	/** Bytes written to the request stream */
-	off_t bytes_written;
+	int64_t bytes_written;
 	/** Bytes remaining to write to the request stream */
-	off_t bytes_remaining;
+	int64_t bytes_remaining;
 	/** Memory buffer containing the request (NULL if using file_body) */
 	const char *body;
 	/** File pointiner containing the request data (NULL if using body) */
@@ -293,7 +293,7 @@ void RestRequest_destroy(RestRequest *self);
  * "text/plain" or "image/jpeg".
  */
 void RestRequest_set_array_body(RestRequest *self, const char *data,
-		off_t data_size, const char *content_type);
+        int64_t data_size, const char *content_type);
 /**
  * Sets the RestRequest's body to the contents of a file pointer.
  * @param self the RestRequest to configure.
@@ -302,7 +302,7 @@ void RestRequest_set_array_body(RestRequest *self, const char *data,
  * @param content_type the content type (MIME type) of the data, e.g.
  * "text/plain" or "image/jpeg".
  */
-void RestRequest_set_file_body(RestRequest *self, FILE *data, off_t data_size,
+void RestRequest_set_file_body(RestRequest *self, FILE *data, int64_t data_size,
 		const char *content_type);
 /**
  * Adds an HTTP header to the request.
