@@ -60,11 +60,17 @@
 #define ERROR_MESSAGE_SIZE 255
 
 // Some standard HTTP headers
+/** MIME type of the object, e.g. image/jpeg */
 #define HTTP_HEADER_CONTENT_TYPE "Content-Type"
+/** Size of the response in bytes */
 #define HTTP_HEADER_CONTENT_LENGTH "Content-Length"
+/** Request only part of a resource */
 #define HTTP_HEADER_RANGE "Range"
+/** Defines the Content-Types that will be accepted in a response */
 #define HTTP_HEADER_ACCEPT "Accept"
+/** Date the request or response was sent */
 #define HTTP_HEADER_DATE "Date"
+/** Used to define the location of a response */
 #define HTTP_HEADER_LOCATION "Location"
 
 /**
