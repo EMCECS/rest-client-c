@@ -130,7 +130,11 @@ void seatest_assert_string_equal(const char* expected, const char* actual, const
 {
 	char s[SEATEST_PRINT_BUFFER_SIZE];
 	sprintf(s, "Expected %s but was %s", expected, actual);
-	seatest_simple_test_result(strcmp(expected, actual)==0, s, function, line);	
+	if((expected == NULL || actual == NULL) && expected != actual) {
+	    seatest_simple_test_result(0, s, function, line);
+	} else {
+	    seatest_simple_test_result(strcmp(expected, actual)==0, s, function, line);
+	}
 }
 
 void seatest_assert_string_ends_with(const char* expected, const char* actual, const char* function, unsigned int line)
