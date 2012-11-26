@@ -93,7 +93,7 @@ void Object_destroy(Object *self);
 const char *Object_get_class_name(Object *self);
 
 /**
- * }@
+ * @}
  */
 
 #endif /* OBJECT_H_ */

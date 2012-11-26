@@ -571,6 +571,6 @@ void RestFilter_execute_curl_request(RestFilter *self, RestClient *rest,
 		RestRequest *request, RestResponse *response);
 
 /**
- * }@
+ * @}
  */
 #endif /* REST_CLIENT_H_ */

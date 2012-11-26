@@ -80,6 +80,6 @@ void suite_teardown(void (*teardown)( void ));
 void suite_setup(void (*setup)( void ));
 
 /**
- * }@
+ * @}
  */
 #endif 
