@@ -93,6 +93,12 @@ void Object_destroy(Object *self);
 const char *Object_get_class_name(Object *self);
 
 /**
+ * Handy macro to zero the fields of an object minus its parent class (assuming
+ * the parent class does this on its own fields).
+ */
+#define OBJECT_ZERO(obj, class, parent_class) memset(((void*)obj) + sizeof(parent_class), 0, sizeof(class) - sizeof(parent_class))
+
+/**
  * @}
  */
 

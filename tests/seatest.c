@@ -132,6 +132,8 @@ void seatest_assert_string_equal(const char* expected, const char* actual, const
 	sprintf(s, "Expected %s but was %s", expected, actual);
 	if((expected == NULL || actual == NULL) && expected != actual) {
 	    seatest_simple_test_result(0, s, function, line);
+	} else if(expected == NULL && actual == NULL) {
+        seatest_simple_test_result(1, s, function, line);
 	} else {
 	    seatest_simple_test_result(strcmp(expected, actual)==0, s, function, line);
 	}
