@@ -236,6 +236,38 @@ size_t readfunc(void *ptr, size_t size, size_t nmemb, void *stream)
 	return 0;
 }
 
+/**
+ * The normal curl file readfunc reads the entire file, even though the curlopt
+ * FILESIZE was set to the actual number of bytes we want.  This version will
+ * stop when we reach the requested number of bytes.
+ */
+size_t readfunc_file(void *ptr, size_t size, size_t nmemb, void *stream)
+{
+    if(!stream) {
+        return 0;
+    }
+
+    RestRequestBody *ud = (RestRequestBody*)stream;
+    if(ud->bytes_remaining > 0) {
+        if(ud->bytes_remaining >= size*nmemb) {
+          if(ud->bytes_written == 0) {
+            fread(ptr, size*nmemb, 1, ud->file_body);
+          }
+          ud->bytes_written+=size*nmemb;
+          ud->bytes_remaining -=size*nmemb;
+          return size*nmemb;
+        } else {
+          unsigned int datasize = (unsigned int)ud->bytes_remaining;
+          fread(ptr, datasize, 1, ud->file_body);
+          ud->bytes_written+=datasize;
+          ud->bytes_remaining=0;
+          return datasize;
+        }
+    }
+    return 0;
+}
+
+
 size_t writefunc(void *ptr, size_t size, size_t nmemb, void *stream)
 {
 	RestResponse *ws = (RestResponse*)stream;
@@ -467,10 +499,12 @@ void RestFilter_execute_curl_request(RestFilter *self, RestClient *rest,
 	                (curl_off_t)request->request_body->data_size);
 	    }
 
-	  /* If a stream handle is used, let libcurl handle the file I/O */
+	  /* If a stream handle is used, use the file readfunc */
 	  if(request->request_body->file_body && (request->method == HTTP_POST || request->method == HTTP_PUT)) {
-		  curl_easy_setopt(curl, CURLOPT_READDATA, request->request_body->file_body);
-		  curl_easy_setopt(curl, CURLOPT_READFUNCTION, NULL);
+	      fprintf(stderr, "Setting file body\n");
+		  curl_easy_setopt(curl, CURLOPT_READDATA, request->request_body);
+          request->request_body->bytes_remaining = request->request_body->data_size;
+		  curl_easy_setopt(curl, CURLOPT_READFUNCTION, readfunc_file);
 
 		  // Use a throttled upload
 //		  throt_data = malloc(sizeof(throt_read_data));
