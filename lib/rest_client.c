@@ -486,11 +486,6 @@ void RestFilter_execute_curl_request(RestFilter *self, RestClient *rest,
 
 
 	if(request->request_body) {
-//	  if(data->offset >= 0) {
-//	    snprintf(range, HEADER_MAX, "Bytes=%jd-%jd", (intmax_t)data->offset,
-//	    		(intmax_t)(data->offset+data->body_size-1));
-//	  }
-
 	    if(request->method == HTTP_PUT) {
 	        curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE,
 	                (curl_off_t)request->request_body->data_size);
@@ -501,17 +496,9 @@ void RestFilter_execute_curl_request(RestFilter *self, RestClient *rest,
 
 	  /* If a stream handle is used, use the file readfunc */
 	  if(request->request_body->file_body && (request->method == HTTP_POST || request->method == HTTP_PUT)) {
-	      fprintf(stderr, "Setting file body\n");
 		  curl_easy_setopt(curl, CURLOPT_READDATA, request->request_body);
           request->request_body->bytes_remaining = request->request_body->data_size;
 		  curl_easy_setopt(curl, CURLOPT_READFUNCTION, readfunc_file);
-
-		  // Use a throttled upload
-//		  throt_data = malloc(sizeof(throt_read_data));
-//		  memset(throt_data, 0, sizeof(throt_read_data));
-//		  throt_data->data = data->data_stream;
-//		  curl_easy_setopt(curl, CURLOPT_READDATA, throt_data);
-//		  curl_easy_setopt(curl, CURLOPT_READFUNCTION, readfunc_throttled);
 
 	  } else {
 		  curl_easy_setopt(curl, CURLOPT_READDATA, request->request_body);
