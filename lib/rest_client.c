@@ -552,7 +552,7 @@ void RestFilter_execute_curl_request(RestFilter *self, RestClient *rest,
 	response->curl_error = curl_easy_perform(curl);
 
 	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response->http_code);
-	curl_easy_getinfo(curl, CURLINFO_CONTENT_TYPE, &response->content_type);
+	curl_easy_getinfo(curl, CURLINFO_CONTENT_TYPE, response->content_type);
 
 	/* dup it so we can free later */
 	if(response->content_type) {
@@ -560,6 +560,27 @@ void RestFilter_execute_curl_request(RestFilter *self, RestClient *rest,
 	} else {
 		response->content_type = NULL;
 	}
+
+    // First header should be the HTTP status line, e.g.
+    // HTTP/1.1 200 OK
+    // Capture the status message ("OK") since curl doesn't seem to do
+    // this for us.
+    if(response->response_header_count > 0) {
+
+        int space = 0;
+        char *line = response->response_headers[0];
+        while(*line && space < 2) {
+            if(*line == ' ') {
+                space++;
+            }
+            line++;
+        }
+        if(space == 2) {
+            // correctly found 2 spaces.
+            strncpy(response->http_status, line, ERROR_MESSAGE_SIZE);
+        }
+    }
+
     
     // If we read a file, record the number of bytes
     if(response->file_body) {
