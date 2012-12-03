@@ -105,6 +105,9 @@ void RestClient_destroy(RestClient *self) {
 #ifdef _PTHREADS
 		pthread_mutex_destroy(&(private.curl_lock));
 #endif
+        if(private->handlers) {
+            free(private->handlers);
+        }
 		free(private);
 		self->internal = NULL;
 	}
@@ -285,7 +288,6 @@ size_t writefunc(void *ptr, size_t size, size_t nmemb, void *stream)
             // TODO: Logging
             return 0;
         }
-        new_response = ws->body;
     } else {
         /* Add an extra byte so we can null terminate it */
         new_response = realloc(ws->body,ws->content_length+1);
@@ -400,6 +402,10 @@ void RestFilter_set_content_headers(RestFilter *self, RestClient *rest,
 				content_type++;
 			}
 
+            if(response->content_type) {
+                // If one was already set, free it.
+                free(response->content_type);
+            }
 			response->content_type = strdup(content_type);
 			break;
 		}
