@@ -265,6 +265,11 @@ typedef struct {
 	enum http_method method;
 	/** The URI for the request (e.g. /service/version) */
 	char *uri;
+	/**
+	 * If nonzero, the URI is already properly encoded and should not be
+	 * escaped again.
+	 */
+	int uri_encoded;
 	/** HTTP request headers, (e.g. x-emc-date) */
 	char *headers[MAX_HEADERS];
 	/** Number of request headers */

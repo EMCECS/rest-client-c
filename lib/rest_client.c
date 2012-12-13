@@ -429,21 +429,26 @@ void RestFilter_execute_curl_request(RestFilter *self, RestClient *rest,
 	encoded_uri = (char*)malloc(strlen(request->uri)*3+1); /* Worst case if every char was encoded */
 	memset(encoded_uri, 0, strlen(request->uri)*3+1);
 
-	for(i=0,j=0; i<strlen(request->uri); i++) {
-	    if(request->uri[i] == '/') {
-	        encoded_uri[j++] = request->uri[i];
-	    } else if(request->uri[i] == '?') {
-	        /* Do the rest */
-	        strcat(encoded_uri, request->uri+i);
-	        break;
-	    } else {
-	        /* Encode the data */
-	        char *encoded;
-	        encoded = curl_easy_escape(curl, request->uri+i, 1);
-	        strcat(encoded_uri, encoded);
-	        curl_free(encoded);
-	        j = strlen(encoded_uri);
-	    }
+	if(request->uri_encoded) {
+	    // URI is already encoded.
+	    strcpy(encoded_uri, request->uri);
+	} else {
+        for(i=0,j=0; i<strlen(request->uri); i++) {
+            if(request->uri[i] == '/') {
+                encoded_uri[j++] = request->uri[i];
+            } else if(request->uri[i] == '?') {
+                /* Do the rest */
+                strcat(encoded_uri, request->uri+i);
+                break;
+            } else {
+                /* Encode the data */
+                char *encoded;
+                encoded = curl_easy_escape(curl, request->uri+i, 1);
+                strcat(encoded_uri, encoded);
+                curl_free(encoded);
+                j = strlen(encoded_uri);
+            }
+        }
 	}
 
 
@@ -534,8 +539,8 @@ void RestFilter_execute_curl_request(RestFilter *self, RestClient *rest,
 	}
 
 	// Remove some headers
-	curl_slist_append(chunk, "Expect:");
-	curl_slist_append(chunk, "Transfer-Encoding:");
+	chunk = curl_slist_append(chunk, "Expect:");
+	chunk = curl_slist_append(chunk, "Transfer-Encoding:");
 
 	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
 
