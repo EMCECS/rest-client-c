@@ -31,6 +31,7 @@
 */
 #include <string.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 #include "rest_client.h"
 
@@ -371,7 +372,7 @@ void RestFilter_set_content_headers(RestFilter *self, RestClient *rest,
 	char headerbuf[MAX_HEADER_SIZE];
 
 	if(request->request_body) {
-		snprintf(headerbuf, MAX_HEADER_SIZE, "%s: %lld",
+		snprintf(headerbuf, MAX_HEADER_SIZE, "%s: %" PRId64,
 		        HTTP_HEADER_CONTENT_LENGTH,
 				(long long)request->request_body->data_size);
 		RestRequest_add_header(request, headerbuf);

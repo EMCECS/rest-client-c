@@ -228,8 +228,6 @@ void RestResponse_use_buffer(RestResponse *self, char *buffer,
  */
 void RestResponse_use_file(RestResponse *self, FILE *f);
 
-#pragma mark RestRequestBody
-
 /**
  * Defines a RestRequestBody that is an optional component to a RestRequest.
  */
@@ -247,8 +245,6 @@ typedef struct {
 	/** File pointiner containing the request data (NULL if using body) */
 	FILE *file_body;
 } RestRequestBody;
-
-#pragma mark RestRequest
 
 /** Class name for RestRequest */
 #define CLASS_REST_REQUEST "RestRequest"
@@ -345,8 +341,6 @@ const char *RestRequest_get_header(RestRequest *self, const char *header_name);
  */
 const char *RestRequest_get_header_value(RestRequest *self,
         const char *header_name);
-
-#pragma mark RestClient
 
 /** Class name for RestClient */
 #define CLASS_REST_CLIENT "RestClient"
@@ -446,8 +440,6 @@ typedef struct {
 	int curl_config_handler_count;
 } RestPrivate;
 
-#pragma mark Standard Handlers
-
 /**
  * This is a CURL configuration function that enables verbose logging of the
  * request and response via CURL.  See RestClient_add_curl_config_handler().
@@ -484,8 +476,6 @@ int rest_disable_ssl_cert_check(RestClient *rest, CURL *handle);
  * @param handle the CURL handle
  */
 int rest_curl_shared_config(RestClient *rest, CURL *handle);
-
-#pragma mark RestFilter
 
 /**
  * A linked list of filter functions to apply to the request.
@@ -549,8 +539,6 @@ RestFilter *RestFilter_add(RestFilter *start, rest_http_filter next);
  * @param chain the head of the RestFilter chain.
  */
 void RestFilter_free(RestFilter *chain);
-
-#pragma mark Standard Filters
 
 /**
  * This RestFilter function sets the Content-Type and Content-Length headers
