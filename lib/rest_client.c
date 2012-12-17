@@ -372,10 +372,11 @@ void RestFilter_set_content_headers(RestFilter *self, RestClient *rest,
 	char headerbuf[MAX_HEADER_SIZE];
 
 	if(request->request_body) {
-		snprintf(headerbuf, MAX_HEADER_SIZE, "%s: %" PRId64,
+	    /** Curl should set this itself */
+		/* snprintf(headerbuf, MAX_HEADER_SIZE, "%s: %" PRId64,
 		        HTTP_HEADER_CONTENT_LENGTH,
 				(long long)request->request_body->data_size);
-		RestRequest_add_header(request, headerbuf);
+		RestRequest_add_header(request, headerbuf); */
 		snprintf(headerbuf, MAX_HEADER_SIZE, "%s: %s", HTTP_HEADER_CONTENT_TYPE,
 				request->request_body->content_type);
         RestRequest_add_header(request, headerbuf);
