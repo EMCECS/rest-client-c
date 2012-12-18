@@ -88,6 +88,7 @@ enum http_method {
 /** Class name for RestResponse */
 #define CLASS_REST_RESPONSE "RestResponse"
 
+
 /**
  * This is a standard response from REST operations.  Do not modify this object
  * directly; instead use the RestResponse_xxx methods.
@@ -244,6 +245,8 @@ typedef struct {
 	const char *body;
 	/** File pointiner containing the request data (NULL if using body) */
 	FILE *file_body;
+	/** Optional pointer to a function to filter a file_body */
+	void *filter;
 } RestRequestBody;
 
 /** Class name for RestRequest */
@@ -276,6 +279,17 @@ typedef struct {
 	 */
 	RestRequestBody *request_body;
 } RestRequest;
+
+/**
+ * Handler callback used to filter file data as it's read.  Useful for
+ * examining the data stream, modifying bytes, tracking progress,
+ * or calculating a checksum.
+ * @param data the data read from the file
+ * @param data_size number of bytes in data.
+ * @return 1 to continue processing, 0 to abort the http request.
+ */
+typedef int (*rest_file_data_filter)(RestRequest *request, char *data,
+        size_t data_size);
 
 /**
  * Initializes a new RestRequest object.
@@ -341,6 +355,16 @@ const char *RestRequest_get_header(RestRequest *self, const char *header_name);
  */
 const char *RestRequest_get_header_value(RestRequest *self,
         const char *header_name);
+
+/**
+ * Sets the file filter for a request.  Only valid if the request has a body
+ * and that body is reading from a file.
+ * @param self the RestRequest to modify.
+ * @param filter the rest_file_data_filter to call when reading data.  Set to
+ * NULL to turn off.
+ */
+void
+RestRequest_set_file_filter(RestRequest *self, rest_file_data_filter filter);
 
 /** Class name for RestClient */
 #define CLASS_REST_CLIENT "RestClient"
@@ -418,6 +442,7 @@ void RestClient_set_proxy(RestClient *self, const char *proxy_host,
  * @return nonzero to abort processing the request.
  */
 typedef int (*rest_curl_config_handler)(RestClient *rest, CURL *handle);
+
 
 /**
  * Internal private state for RestClient.

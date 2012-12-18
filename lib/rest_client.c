@@ -32,6 +32,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <ctype.h>
 
 #include "rest_client.h"
 
@@ -218,7 +219,8 @@ size_t readfunc(void *ptr, size_t size, size_t nmemb, void *stream)
     	return 0;
     }
 
-	RestRequestBody *ud = (RestRequestBody*)stream;
+    RestRequest *req = (RestRequest*)stream;
+	RestRequestBody *ud = req->request_body;
 	if(ud->bytes_remaining > 0) {
 	    if(ud->bytes_remaining >= size*nmemb) {
 	      if(ud->bytes_written == 0) {
@@ -247,25 +249,35 @@ size_t readfunc(void *ptr, size_t size, size_t nmemb, void *stream)
  */
 size_t readfunc_file(void *ptr, size_t size, size_t nmemb, void *stream)
 {
+    size_t c;
     if(!stream) {
         return 0;
     }
 
-    RestRequestBody *ud = (RestRequestBody*)stream;
+    RestRequest *req = (RestRequest*)stream;
+    RestRequestBody *ud = req->request_body;
     if(ud->bytes_remaining > 0) {
         if(ud->bytes_remaining >= size*nmemb) {
-          if(ud->bytes_written == 0) {
-            fread(ptr, size*nmemb, 1, ud->file_body);
+          c = fread(ptr, size, nmemb, ud->file_body);
+          if(ud->filter) {
+              if(!((rest_file_data_filter)ud->filter)(req, ptr, c)) {
+                  return 0;
+              }
           }
-          ud->bytes_written+=size*nmemb;
-          ud->bytes_remaining -=size*nmemb;
-          return size*nmemb;
+          ud->bytes_written += c;
+          ud->bytes_remaining -= c;
+          return c;
         } else {
           unsigned int datasize = (unsigned int)ud->bytes_remaining;
-          fread(ptr, datasize, 1, ud->file_body);
-          ud->bytes_written+=datasize;
-          ud->bytes_remaining=0;
-          return datasize;
+          c = fread(ptr, 1, datasize, ud->file_body);
+          if(ud->filter) {
+              if(!((rest_file_data_filter)ud->filter)(req, ptr, c)) {
+                  return 0;
+              }
+          }
+          ud->bytes_written += c;
+          ud->bytes_remaining -= c;
+          return c;
         }
     }
     return 0;
@@ -422,6 +434,7 @@ void RestFilter_execute_curl_request(RestFilter *self, RestClient *rest,
     struct curl_slist *chunk = NULL;
     char *encoded_uri;
     char *endpoint_url;
+    long http_code;
     size_t endpoint_size;
     size_t i,j;
 
@@ -509,12 +522,12 @@ void RestFilter_execute_curl_request(RestFilter *self, RestClient *rest,
 
 	  /* If a stream handle is used, use the file readfunc */
 	  if(request->request_body->file_body && (request->method == HTTP_POST || request->method == HTTP_PUT)) {
-		  curl_easy_setopt(curl, CURLOPT_READDATA, request->request_body);
+		  curl_easy_setopt(curl, CURLOPT_READDATA, request);
           request->request_body->bytes_remaining = request->request_body->data_size;
 		  curl_easy_setopt(curl, CURLOPT_READFUNCTION, readfunc_file);
 
 	  } else {
-		  curl_easy_setopt(curl, CURLOPT_READDATA, request->request_body);
+		  curl_easy_setopt(curl, CURLOPT_READDATA, request);
 		  request->request_body->bytes_remaining = request->request_body->data_size;
 		  curl_easy_setopt(curl, CURLOPT_READFUNCTION, readfunc);
 	  }
@@ -564,8 +577,9 @@ void RestFilter_execute_curl_request(RestFilter *self, RestClient *rest,
 	// Execute the request
 	response->curl_error = curl_easy_perform(curl);
 
-	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response->http_code);
-	curl_easy_getinfo(curl, CURLINFO_CONTENT_TYPE, response->content_type);
+	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+	response->http_code = (int)http_code;
+	curl_easy_getinfo(curl, CURLINFO_CONTENT_TYPE, &response->content_type);
 
 	/* dup it so we can free later */
 	if(response->content_type) {
@@ -656,14 +670,10 @@ void RestResponse_use_file(RestResponse *self, FILE *f) {
 
 RestRequest *RestRequest_init(RestRequest *self, const char *uri, enum http_method method) {
 	Object_init_with_class_name((Object*)self, CLASS_REST_REQUEST);
+	OBJECT_ZERO(self, RestRequest, Object);
 
 	self->uri = strdup(uri);
 	self->method = method;
-
-	// Init other fields, clear headers.
-	self->header_count = 0;
-	self->request_body = NULL;
-	memset(self->headers, 0, sizeof(char *) * MAX_HEADERS);
 
 	return self;
 }
@@ -717,13 +727,55 @@ void RestRequest_add_header(RestRequest *self, const char *header) {
 	self->headers[self->header_count++] = strdup(header);
 }
 
+const char *RestRequest_strcsw(const char *haystack, const char *needle) {
+    const char *start = haystack;
+
+    while(*haystack && *needle) {
+        char h = tolower(*haystack);
+        char n = tolower(*needle);
+
+        if(h == n) {
+            haystack++;
+            needle++;
+        } else {
+            // not equal.
+            return NULL;
+        }
+    }
+
+    if(*needle) {
+        // didn't finish
+        return NULL;
+    } else {
+        // Reached end of needle, found it
+        return start;
+    }
+}
+
+const char *RestRequest_strcasestr(const char *haystack, const char *needle) {
+    size_t diff = strlen(haystack) - strlen(needle);
+
+    // Stop when what's left of the haystack is smaller than the needle.
+    const char *end = haystack + diff+1;
+
+    while(*haystack && haystack < end) {
+        const char *x = RestRequest_strcsw(haystack, needle);
+        if(x) {
+            return x;
+        }
+        haystack++;
+    }
+
+    return NULL;
+}
+
 const char *RestRequest_get_header(RestRequest *self, const char *header_name) {
     int i;
-    char *header;
+    const char *header;
 
     for(i=0; i<self->header_count; i++) {
-        if((header = strcasestr(self->headers[i], header_name)) != NULL &&
-                header == self->headers[i]) {
+        header = RestRequest_strcasestr(self->headers[i], header_name);
+        if(header != NULL && header == self->headers[i]) {
             // Just to make sure, the next character should be a colon.
             if(header[strlen(header_name)] != ':') {
                 continue;
@@ -767,10 +819,10 @@ const char *RestRequest_get_header_value(RestRequest *self,
 
 const char *RestResponse_get_header(RestResponse *self, const char *header_name) {
     int i;
-    char *header;
+    const char *header;
 
     for(i=0; i<self->response_header_count; i++) {
-        if((header = strcasestr(self->response_headers[i], header_name)) != NULL &&
+        if((header = RestRequest_strcasestr(self->response_headers[i], header_name)) != NULL &&
                 header == self->response_headers[i]) {
             // Just to make sure, the next character should be a colon.
             if(header[strlen(header_name)] != ':') {
@@ -782,6 +834,16 @@ const char *RestResponse_get_header(RestResponse *self, const char *header_name)
     }
     return NULL;
 }
+
+void
+RestRequest_set_file_filter(RestRequest *self, rest_file_data_filter filter) {
+    if(!self->request_body) {
+        return;
+    }
+
+    self->request_body->filter = filter;
+}
+
 
 const char *RestResponse_get_header_value(RestResponse *self,
         const char *header_name) {
