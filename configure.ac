@@ -5,7 +5,8 @@ AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign -Wall -Werror])
 LT_INIT
 AC_PROG_CC
-CFLAGS="$CFLAGS -Wall -Werror"
+AX_CHECK_COMPILE_FLAG([-Wall], [CFLAGS="$CFLAGS -Wall"], [], [])
+AX_CHECK_COMPILE_FLAG([-Werror], [CFLAGS="$CFLAGS -Werror"], [], [])
 AC_CHECK_LIB([curl], [curl_easy_init], [CURLLIB=-lcurl])
 AC_SUBST([CURLLIB])
 AC_CONFIG_HEADERS([config.h])
