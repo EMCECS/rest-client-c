@@ -7,8 +7,9 @@ LT_INIT
 AC_PROG_CC
 AX_CFLAGS_WARN_ALL
 AX_CHECK_COMPILE_FLAG([-Werror], [CFLAGS="$CFLAGS -Werror"], [], [])
-AC_CHECK_LIB([curl], [curl_easy_init], [CURLLIB=-lcurl])
-AC_SUBST([CURLLIB])
+#AC_CHECK_LIB([curl], [curl_easy_init], [CURLLIB=-lcurl])
+#AC_SUBST([CURLLIB])
+PKG_CHECK_MODULES(CURL, libcurl >= 7.20)
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile lib/Makefile tests/Makefile])
 AC_OUTPUT
