@@ -11,6 +11,8 @@ echo "Setting up aclocal"
 aclocal -I m4
 echo "Generating configure"
 autoconf
+echo "Generating config.h.in"
+autoheader
 echo "Generating Makefile.in"
 automake --add-missing
 
