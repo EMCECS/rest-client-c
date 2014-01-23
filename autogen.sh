@@ -6,7 +6,7 @@
 ##
 
 echo "Setting up libtool"
-libtoolize
+libtoolize --force
 echo "Setting up aclocal"
 aclocal -I m4
 echo "Generating configure"
