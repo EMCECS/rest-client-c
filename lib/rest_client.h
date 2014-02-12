@@ -66,6 +66,7 @@
 #define HTTP_HEADER_CONTENT_LENGTH "Content-Length"
 /** Request only part of a resource */
 #define HTTP_HEADER_RANGE "Range"
+#define HTTP_HEADER_CONTENT_RANGE "Content-Range"
 /** Defines the Content-Types that will be accepted in a response */
 #define HTTP_HEADER_ACCEPT "Accept"
 /** Date the request or response was sent */
