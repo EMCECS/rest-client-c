@@ -1,0 +1,15 @@
+/------------------ mylib.pc.in ------------------------
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: rest-client-c
+Description: Flexible C library to execute REST operations using libcurl 
+URL: https://github.com/emcvipr/rest-client-c
+Version: @VERSION@
+Requires: libcurl >= 7.20
+Libs: -lcurl -lrest
+Cflags: 
+\-------------------------------------------------------
+
