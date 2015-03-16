@@ -20,4 +20,4 @@ This package uses autotools, so the standard GNU build procedure can be used:
     make
     sudo make install
 
-This installation places the librest libraries in the /usr/local/lib directory
+This installation places the librest libraries in the /usr/local/lib directory where atmos-client-c will check for this dependency.
