@@ -5,4 +5,7 @@ include_HEADERS = maindoc.h object.h rest_client.h
 pkgconfigdir = $(libdir)/pkgconfig
 nodist_pkgconfig_DATA = rest-client-c.pc
 
+LDADD = $(PTHREAD_LIBS)
+AM_CFLAGS = $(PTHREAD_CFLAGS)
+
 

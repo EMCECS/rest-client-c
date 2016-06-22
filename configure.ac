@@ -10,6 +10,15 @@ AX_CHECK_COMPILE_FLAG([-Werror], [CFLAGS="$CFLAGS -Werror"], [], [])
 #AC_CHECK_LIB([curl], [curl_easy_init], [CURLLIB=-lcurl])
 #AC_SUBST([CURLLIB])
 PKG_CHECK_MODULES(CURL, libcurl >= 7.20)
+AC_ARG_ENABLE(threads, AC_HELP_STRING([--enable-threads], 
+		[enable pthreads (default is yes)]), 
+		ac_enable_threads=$enableval, 
+		ac_enable_threads=yes) 
+if test "$ac_enable_threads" = yes; then 
+	AC_DEFINE(_PTHREADS, 1, [use threads]) 
+	AX_PTHREAD
+fi
+AM_CONDITIONAL(THREADS, test $ac_enable_threads = yes) 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile lib/Makefile tests/Makefile lib/rest-client-c.pc])
 AC_OUTPUT

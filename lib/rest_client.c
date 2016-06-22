@@ -34,6 +34,7 @@
 #include <inttypes.h>
 #include <ctype.h>
 
+#include "config.h"
 #include "rest_client.h"
 
 #define CONNECT_TIMEOUT 200
@@ -43,14 +44,14 @@ void lock_function(CURL *handle, curl_lock_data data,
 		curl_lock_access access, void *userptr) {
 #ifdef _PTHREADS
 	RestPrivate *private = (RestPrivate*)userptr;
-	pthread_mutex_lock(private->curl_lock);
+	pthread_mutex_lock(&private->curl_lock);
 #endif
 }
 
 void unlock_function(CURL *handle, curl_lock_data data, void *userptr) {
 #ifdef _PTHREADS
 	RestPrivate *private = (RestPrivate*)userptr;
-	pthread_mutex_unlock(private->curl_lock);
+	pthread_mutex_unlock(&private->curl_lock);
 #endif
 }
 
@@ -76,7 +77,7 @@ RestClient *RestClient_init(RestClient *self, const char *host, int port) {
 	curl_share_setopt(private->curl_shared, CURLSHOPT_UNLOCKFUNC, unlock_function);
 
 #ifdef _PTHREADS
-	pthread_mutex_init(&(private.curl_lock), NULL);
+	pthread_mutex_init(&private->curl_lock, NULL);
 #endif
 
 	curl_share_setopt(private->curl_shared, CURLSHOPT_USERDATA, private);
@@ -105,7 +106,7 @@ void RestClient_destroy(RestClient *self) {
 			private->curl_shared = NULL;
 		}
 #ifdef _PTHREADS
-		pthread_mutex_destroy(&(private.curl_lock));
+		pthread_mutex_destroy(&private->curl_lock);
 #endif
         if(private->handlers) {
             free(private->handlers);

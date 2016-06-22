@@ -31,6 +31,7 @@
 */
 #include <stdio.h>
 
+#include "config.h"
 #include "seatest.h"
 #include "test_object.h"
 #include "test_rest_client.h"
