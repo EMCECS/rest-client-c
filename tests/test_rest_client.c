@@ -32,6 +32,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "config.h"
 #include "seatest.h"
 #include "test.h"
 #include "test_rest_client.h"
@@ -84,6 +85,74 @@ void test_rest_client_execute() {
 	RestRequest_destroy(&req);
 	RestClient_destroy(&c);
 }
+
+#ifdef _PTHREADS
+#define NUM_THREADS 100
+
+typedef struct {
+	RestClient *c;
+	int status;
+} TestData;
+
+void *exec_request(void *private) {
+	TestData *data = (TestData*)private;
+	RestClient *c = data->c;
+        RestRequest req;
+        RestResponse res;
+        RestFilter* chain = NULL;
+
+        RestRequest_init(&req, "/", HTTP_GET);
+        RestResponse_init(&res);
+
+        chain = RestFilter_add(chain, &RestFilter_execute_curl_request);
+        RestClient_execute_request(c, chain, &req, &res);
+        RestFilter_free(chain);
+
+        assert_int_equal(0, res.curl_error);
+        assert_int_equal(200, res.http_code);
+
+	data->status = res.http_code;
+
+        RestResponse_destroy(&res);
+        RestRequest_destroy(&req);
+	pthread_exit(private);
+}
+
+void test_rest_client_threads() {
+	pthread_t thread[NUM_THREADS];
+	pthread_attr_t attr;
+	int rc;
+	long t;
+	RestClient c;
+	TestData *data;
+
+        RestClient_init(&c, "www.google.com", 80);
+
+	/* Initialize and set thread detached attribute */
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+	for(t=0; t<NUM_THREADS; t++) {
+		data = malloc(sizeof(TestData));
+		data->c = &c;
+		data->status = 0;
+		printf("Main: creating thread %ld\n", t);
+		rc = pthread_create(&thread[t], &attr, exec_request, (void *)data);  
+		assert_int_equal(0, rc);	
+	}
+
+	/* Free attribute and wait for the other threads */
+	pthread_attr_destroy(&attr);
+	for(t=0; t<NUM_THREADS; t++) {
+		rc = pthread_join(thread[t], (void*)&data);
+		assert_int_equal(200, data->status);
+		printf("Main: completed join with thread %ld having a status of %d\n",t, data->status);
+		free(data);
+	}
+
+	RestClient_destroy(&c);
+}
+#endif
 
 void test_rest_client_execute_with_buffer() {
 	// Load the root of the server. Use a predefined buffer to fill.
@@ -187,6 +256,10 @@ void test_rest_client_suite() {
 	run_test(test_rest_client_execute_with_buffer);
 	start_test_msg("test_rest_client_execute_with_too_small_buffer");
 	run_test(test_rest_client_execute_with_too_small_buffer);
+#ifdef _PTHREADS
+	start_test_msg("test_rest_client_threads");
+	run_test(test_rest_client_threads);
+#endif
     
 
 	test_fixture_end();

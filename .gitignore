@@ -1,0 +1,9 @@
+tests/
+*.o
+.libs/
+Makefile
+config.*
+configure
+*.la
+*.lo
+Makefile.in
