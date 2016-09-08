@@ -70,7 +70,7 @@ void test_rest_client_execute() {
 	RestFilter* chain = NULL;
     
     
-	RestClient_init(&c, "www.google.com", 80);
+	RestClient_init(&c, "www.google.com", 443);
 	RestRequest_init(&req, "/", HTTP_GET);
 	RestResponse_init(&res);
     
@@ -245,6 +245,8 @@ void test_rest_request() {
 
 void test_rest_client_suite() {
 	test_fixture_start();
+	curl_global_init(CURL_GLOBAL_DEFAULT);
+
 
 	start_test_msg("test_rest_client_init");
 	run_test(test_rest_client_init);
@@ -261,7 +263,7 @@ void test_rest_client_suite() {
 	run_test(test_rest_client_threads);
 #endif
     
-
+	curl_global_cleanup();
 	test_fixture_end();
 
 }
