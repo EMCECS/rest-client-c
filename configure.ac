@@ -1,7 +1,7 @@
 AC_INIT([rest-client-c], [1.0.2], [jason_d0t_cwik@emc_d0t_com])
-m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
+m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AM_INIT_AUTOMAKE([foreign -Wall -Werror])
 LT_INIT
 AC_PROG_CC
