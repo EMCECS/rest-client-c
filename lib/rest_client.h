@@ -83,7 +83,8 @@ enum http_method {
 	HTTP_PUT,
 	HTTP_DELETE,
 	HTTP_HEAD,
-	HTTP_OPTIONS
+	HTTP_OPTIONS,
+	HTTP_PATCH
 };
 
 /** Class name for RestResponse */

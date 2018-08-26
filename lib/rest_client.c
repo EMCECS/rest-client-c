@@ -393,7 +393,7 @@ void RestFilter_set_content_headers(RestFilter *self, RestClient *rest,
 		snprintf(headerbuf, MAX_HEADER_SIZE, "%s: %s", HTTP_HEADER_CONTENT_TYPE,
 				request->request_body->content_type);
         RestRequest_add_header(request, headerbuf);
-	} else if(request->method == HTTP_POST || request->method == HTTP_PUT) {
+	} else if(request->method == HTTP_POST || request->method == HTTP_PUT || request->method == HTTP_PATCH) {
 		// Zero-length body
 		RestRequest_add_header(request, HTTP_HEADER_CONTENT_LENGTH ":0");
 	}
@@ -509,6 +509,10 @@ void RestFilter_execute_curl_request(RestFilter *self, RestClient *rest,
 	  break;
 	case HTTP_OPTIONS:
 	  break;
+	case HTTP_PATCH:
+	  curl_easy_setopt(curl, CURLOPT_POST, 1L);
+	  curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");
+	  break;
 	}
 
 
@@ -522,7 +526,7 @@ void RestFilter_execute_curl_request(RestFilter *self, RestClient *rest,
 	    }
 
 	  /* If a stream handle is used, use the file readfunc */
-	  if(request->request_body->file_body && (request->method == HTTP_POST || request->method == HTTP_PUT)) {
+	  if(request->request_body->file_body && (request->method == HTTP_POST || request->method == HTTP_PUT || request->method == HTTP_PATCH)) {
 		  curl_easy_setopt(curl, CURLOPT_READDATA, request);
           request->request_body->bytes_remaining = request->request_body->data_size;
 		  curl_easy_setopt(curl, CURLOPT_READFUNCTION, readfunc_file);
